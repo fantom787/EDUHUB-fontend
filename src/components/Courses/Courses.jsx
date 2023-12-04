@@ -10,9 +10,15 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+import { addToPlaylist } from '../../redux/actions/profileAction';
+import { loadUser } from '../../redux/actions/userAction';
+import { useEffect } from 'react';
+import { getAllCourses } from '../../redux/actions/courseAction';
+import toast from 'react-hot-toast';
 
-const CourseCard = ({
+const Course = ({
   views,
   title,
   imageSrc,
@@ -21,78 +27,99 @@ const CourseCard = ({
   creator,
   description,
   lectureCount,
+  loading,
 }) => {
   return (
-    <>
-      <VStack className='course' alignItems={['center', 'flex-start']}>
-        <Image src={imageSrc} boxSize={'60'} objectFit={'contain'} />
-        <Heading
-          textAlign={['center', 'left']}
-          maxW={'200px'}
-          fontFamily={'sans-serif'}
-          noOfLines={3}
-          size={'sm'}
-          children={title}
+    <VStack className='course' alignItems={['center', 'flex-start']}>
+      <Image src={imageSrc} boxSize='60' objectFit={'contain'} />
+      <Heading
+        textAlign={['center', 'left']}
+        maxW='200px'
+        size={'sm'}
+        fontFamily={'sans-serif'}
+        noOfLines={3}
+        children={title}
+      />
+      <Text noOfLines={2} children={description} />
+
+      <HStack>
+        <Text
+          fontWeight={'bold'}
+          textTransform='uppercase'
+          children={'Creator'}
         />
-        <Text children={description} noOfLines={2} />
-        <HStack>
-          <Text
-            noOfLines={2}
-            children={'Createor'}
-            fontWeight={'bold'}
-            textTransform={'uppercase'}
-          />
-          <Text
-            noOfLines={2}
-            children={creator}
-            fontFamily={'body'}
-            textTransform={'uppercase'}
-          />
-        </HStack>
-        <Heading
-          textAlign={'center'}
-          size={'xs'}
-          children={`Lectures - ${lectureCount}`}
-          textTransform={'uppercase'}
+
+        <Text
+          fontFamily={'body'}
+          textTransform='uppercase'
+          children={creator}
         />
-        <Heading
-          textAlign={'center'}
-          size={'xs'}
-          children={`Views - ${views}`}
-          textTransform={'uppercase'}
-        />
-        <Stack direction={['column', 'row']} alignItems={'center'}>
-          <Link to={`/course/${id}`}>
-            <Button colorScheme='yellow'>Watch Now</Button>
-          </Link>
-          <Button
-            variant={'ghost'}
-            colorScheme='yellow'
-            onClick={() => addToPlaylistHandler(id)}
-          >
-            Add To Playlist
-          </Button>
-        </Stack>
-      </VStack>
-    </>
+      </HStack>
+
+      <Heading
+        textAlign={'center'}
+        size='xs'
+        children={`Lectures - ${lectureCount}`}
+        textTransform='uppercase'
+      />
+
+      <Heading
+        size='xs'
+        children={`Views - ${views}`}
+        textTransform='uppercase'
+      />
+
+      <Stack direction={['column', 'row']} alignItems='center'>
+        <Link to={`/course/${id}`}>
+          <Button colorScheme={'yellow'}>Watch Now</Button>
+        </Link>
+        <Button
+          isLoading={loading}
+          variant={'ghost'}
+          colorScheme={'yellow'}
+          onClick={() => addToPlaylistHandler(id)}
+        >
+          Add to playlist
+        </Button>
+      </Stack>
+    </VStack>
   );
 };
 
 export const categories = [
-  'Web Develeopment',
+  'Web development',
   'Artificial Intellegence',
-  'Data Structures and Algorithms',
+  'Data Structure & Algorithm',
+  'App Development',
   'Data Science',
-  'App Develeopment',
-  'Game Develeopment',
+  'Game Development',
 ];
 
 const Courses = () => {
   const [keyword, setKeyword] = useState();
   const [category, setCategory] = useState();
-  const addToPlaylistHandler = id => {
-    console.log(id);
+  const dispatch = useDispatch();
+  const addToPlaylistHandler = async id => {
+    await dispatch(addToPlaylist(id));
+    dispatch(loadUser());
   };
+  const { loading, courses, error, message } = useSelector(
+    state => state.course
+  );
+
+  useEffect(() => {
+    dispatch(getAllCourses(category, keyword));
+
+    if (error) {
+      toast.error(error);
+      dispatch({ type: 'clearError' });
+    }
+
+    if (message) {
+      toast.success(message);
+      dispatch({ type: 'clearMessage' });
+    }
+  }, [category, keyword, dispatch, error, message]);
 
   return (
     <Container minH={'95vh'} maxW={'container.lg'} paddingY={'8'}>
@@ -127,16 +154,24 @@ const Courses = () => {
         justifyContent={['flex-start', 'space-evenly']}
         alignItems={['center', 'flex-start']}
       >
-        <CourseCard
-          title={'Sample'}
-          description={'Sample'}
-          views={23}
-          imageSrc={'Sample'}
-          id={'Sample'}
-          creator={'SamplBoy'}
-          lectureCount={2}
-          addToPlaylistHandler={addToPlaylistHandler}
-        />
+        {courses.length > 0 ? (
+          courses.map(item => (
+            <Course
+              key={item._id}
+              title={item.title}
+              description={item.description}
+              views={item.views}
+              imageSrc={item.poster.url}
+              id={item._id}
+              creator={item.createdBy}
+              lectureCount={item.numOfVideos}
+              addToPlaylistHandler={addToPlaylistHandler}
+              loading={loading}
+            />
+          ))
+        ) : (
+          <Heading mt='4' children='Courses Not Found' />
+        )}
       </Stack>
     </Container>
   );

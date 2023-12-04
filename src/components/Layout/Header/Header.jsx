@@ -13,6 +13,8 @@ import {
 } from '@chakra-ui/react';
 import { RiDashboardFill, RiLogoutBoxLine, RiMenu5Fill } from 'react-icons/ri';
 import { Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { logout } from '../../../redux/actions/userAction.js';
 
 const ButtonComponent = ({ url = '/', text = 'Home', onClose }) => {
   return (
@@ -22,15 +24,14 @@ const ButtonComponent = ({ url = '/', text = 'Home', onClose }) => {
   );
 };
 
-const Header = () => {
+const Header = ({ isAuthenticated = false, user }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const isAuthenticated = true;
-  const user = {
-    role: 'admin',
-  };
+
+  const dispatch = useDispatch();
+
   const LogoutHandler = () => {
-    console.log('Logout');
     onClose();
+    dispatch(logout());
   };
 
   return (
